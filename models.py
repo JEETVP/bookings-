@@ -80,14 +80,24 @@ class User(Base):
         return f"User('{self.nombre_completo} {self.apellidos}', '{self.email}'), role='{self.role}')"
 
 
+#Mejor que el estado sea una clase separada ya que tiene varios
+class BookingStatus(str, enum.Enum):
+    CONFIRMADA = "Confirmada" 
+    CANCELADA = "Cancelada" 
+    COMPLETADA = "Completada"
+
+
 #Booking
 class Booking(BaseModel):
     Id: int = Field(..., description="Primary Key")
     Room_Id: int = Field(..., description="Foreign Key to Room")
     User_Id: int = Field(..., description="Foreign Key to User")
-    Estado: str = Field(default="Pendiente", description="Estado de la reserva")
-    BookingIn: Optional[datetime] = Field(None, description="Fecha y hora de entrada")
-    BookingOn: Optional[datetime] = Field(None, description="Fecha y hora de salida")
+    Estado: BookingStatus = Field(default=BookingStatus.CONFIRMADA, description="Estado de la reserva") #Por default ya esta confirmada
+    BookingIn: Optional[datetime] = Field(None, description="Fecha y hora de entrada al cuarto")
+    BookingOn: Optional[datetime] = Field(None, description="Fecha y hora de salida del cuarto")
+    created_at: datetime = Field(default_factory=datetime.now, description="Fecha de creación de la reserva")
+    num_guests: int = Field(..., ge=1, description="Número de huéspedes")
+    total_price: float = Field(..., ge=0, description="Precio total de la reserva")
 
 #Room
 class Room(BaseModel):
