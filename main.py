@@ -2,15 +2,10 @@ from fastapi import FastAPI, Request
 from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from routes.auth import router as auth_router
 from datetime import datetime
-from utils.config import settings
-from database import init_db
+from lib.config import settings
 
 load_dotenv()
-
-# Inicializar la base de datos
-init_db()
 
 app = FastAPI(
     title="Booking API",
@@ -27,7 +22,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth_router)
+# app.include_router(auth_router)
 
 @app.get("/")
 async def read_root():
