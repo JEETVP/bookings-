@@ -4,7 +4,7 @@ from datetime import datetime
 
 Estado = Literal["pendiente", "enviado", "fallido", "leido"]
 Canal = Literal["inapp", "email", "push"]
-
+#AQUI ESTA EL MODELO DE LO QUE VA A RECIBIR LA API AL CREAR Y EDITAR LAS MODIFICACIONES
 class NotificationCreate(BaseModel):
     user_id: int = Field(..., ge=1)
     titulo: Optional[str] = Field(None, max_length=120)
@@ -16,7 +16,7 @@ class NotificationUpdate(BaseModel):
     titulo: Optional[str] = None
     mensaje: Optional[str] = None
     canal: Optional[Canal] = None
-
+#LO QUE DEVUELVE LA API AL CLIENTE
 class NotificationResponse(BaseModel):
     id: str
     user_id: int

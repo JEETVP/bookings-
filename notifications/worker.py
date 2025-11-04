@@ -1,11 +1,7 @@
 from datetime import datetime
 from utils.mongodb import get_notifications_collection
 
-def process_pending(limit: int = 100):
-    """
-    Procesa notificaciones pendientes o programadas cuya hora ya llegó.
-    Marca como 'enviado' si el “envío” (mock) “sale”.
-    """
+def process_pending(limit: int = 100): #busca las notificaciones que estn con estado pendiente 
     col = get_notifications_collection()
     now = datetime.now()
     cursor = col.find({
@@ -19,7 +15,7 @@ def process_pending(limit: int = 100):
     for doc in cursor:
         try:
             # simulación de envío
-            ok = True  # aquí iría lógica real (email/push/etc.)
+            ok = True  
             updates = {"intentos": doc.get("intentos", 0) + 1, "updated_at": now}
             if ok:
                 updates.update({"estado": "enviado", "sent_at": now})

@@ -2,11 +2,10 @@ from datetime import datetime
 from bson import ObjectId
 from bson.errors import InvalidId
 from typing import Optional, List, Dict, Any
-
 from utils.mongodb import get_notifications_collection
 from notifications.schemas import NotificationCreate, NotificationUpdate
 
-def _doc_to_response(doc: Dict[str, Any]) -> Dict[str, Any]:
+def _doc_to_response(doc: Dict[str, Any]) -> Dict[str, Any]: #Convierte el documento de mongo para que pueda ser enviado como respuesta response_model
     return {
         "id": str(doc["_id"]),
         "user_id": doc["user_id"],
@@ -21,7 +20,7 @@ def _doc_to_response(doc: Dict[str, Any]) -> Dict[str, Any]:
         "sent_at": doc.get("sent_at"),
     }
 
-def create_notification(data: NotificationCreate) -> Dict[str, Any]:
+def create_notification(data: NotificationCreate) -> Dict[str, Any]: #crea una notificación apartir del schema definido en notificationcreate y devuelve la notificación formateada como doc_response
     col = get_notifications_collection()
     doc = {
         "user_id": data.user_id,
@@ -39,7 +38,7 @@ def create_notification(data: NotificationCreate) -> Dict[str, Any]:
     res = col.insert_one(doc)
     return _doc_to_response(col.find_one({"_id": res.inserted_id}))
 
-def get_notification_by_id(notif_id: str) -> Optional[Dict[str, Any]]:
+def get_notification_by_id(notif_id: str) -> Optional[Dict[str, Any]]: #busca la notificacion que este insertada en mongo, si esta insertada la devuelve en el formato
     try:
         oid = ObjectId(notif_id)
     except InvalidId:
@@ -48,7 +47,7 @@ def get_notification_by_id(notif_id: str) -> Optional[Dict[str, Any]]:
     doc = col.find_one({"_id": oid})
     return _doc_to_response(doc) if doc else None
 
-def list_notifications(
+def list_notifications( #construye el query y devuelve como una lista ya formateada de docresponsed, dependiendo del filtro que se le haya aplicado
     user_id: Optional[int] = None,
     estado: Optional[str] = None,
     skip: int = 0,
@@ -63,7 +62,7 @@ def list_notifications(
     docs = col.find(query).skip(skip).limit(limit).sort("created_at", -1)
     return [_doc_to_response(d) for d in docs]
 
-def mark_as_read(notif_id: str) -> bool:
+def mark_as_read(notif_id: str) -> bool: #validacion de object id, jace el update one para cambiar el estado a leido
     try:
         oid = ObjectId(notif_id)
     except InvalidId:
@@ -72,7 +71,7 @@ def mark_as_read(notif_id: str) -> bool:
     res = col.update_one({"_id": oid}, {"$set": {"estado": "leido", "updated_at": datetime.now(), "read_at": datetime.now()}})
     return res.modified_count == 1
 
-def update_notification(notif_id: str, data: NotificationUpdate) -> Optional[Dict[str, Any]]:
+def update_notification(notif_id: str, data: NotificationUpdate) -> Optional[Dict[str, Any]]: #hace la validacion de que sea un objectid, para poder hacer el update de los campos de la notificacion
     try:
         oid = ObjectId(notif_id)
     except InvalidId:
@@ -85,7 +84,7 @@ def update_notification(notif_id: str, data: NotificationUpdate) -> Optional[Dic
     col.update_one({"_id": oid}, {"$set": update})
     return get_notification_by_id(notif_id)
 
-def delete_notification(notif_id: str) -> bool:
+def delete_notification(notif_id: str) -> bool: #valida que la notificacion sea objectId y si es verdadero elimina segun el id
     try:
         oid = ObjectId(notif_id)
     except InvalidId:

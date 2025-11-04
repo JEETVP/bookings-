@@ -7,11 +7,11 @@ from notifications import service as svc
 
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
 
-@router.post("/", response_model=NotificationResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=NotificationResponse, status_code=status.HTTP_201_CREATED) #utiliza el cuerpo JSON de NotificationCreate
 async def create_notification(payload: NotificationCreate, admin: User = Depends(get_admin_user)):
-    return svc.create_notification(payload)
+    return svc.create_notification(payload) #devuelve una notification create con estando pendiente
 
-@router.get("/", response_model=List[NotificationResponse])
+@router.get("/", response_model=List[NotificationResponse]) #permite filtrado por estado o user_id y genera una lista de notificaciones 
 async def list_all_notifications(
     estado: Optional[str] = Query(None),
     user_id: Optional[int] = Query(None),
@@ -21,7 +21,7 @@ async def list_all_notifications(
 ):
     return svc.list_notifications(user_id=user_id, estado=estado, skip=skip, limit=limit)
 
-@router.get("/mine", response_model=List[NotificationResponse])
+@router.get("/mine", response_model=List[NotificationResponse]) #segun el currentuser id devuelve una lista de todas las notificaciones del usuario logueado
 async def list_my_notifications(
     estado: Optional[str] = Query(None),
     skip: int = 0,
@@ -30,7 +30,7 @@ async def list_my_notifications(
 ):
     return svc.list_notifications(user_id=current_user.id, estado=estado, skip=skip, limit=limit)
 
-@router.post("/{notif_id}/mark-read", status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/{notif_id}/mark-read", status_code=status.HTTP_204_NO_CONTENT) #marca como leido la notificacion del usuario ya logueado
 async def mark_read(notif_id: str, current_user: User = Depends(get_current_user)):
     notif = svc.get_notification_by_id(notif_id)
     if not notif:
@@ -42,14 +42,14 @@ async def mark_read(notif_id: str, current_user: User = Depends(get_current_user
     if not ok:
         raise HTTPException(status_code=400, detail="No se pudo marcar como leída")
 
-@router.patch("/{notif_id}", response_model=NotificationResponse)
+@router.patch("/{notif_id}", response_model=NotificationResponse) #permite actualizar segun el notificationresponde
 async def update_notification(notif_id: str, data: NotificationUpdate, admin: User = Depends(get_admin_user)):
     notif = svc.update_notification(notif_id, data)
     if not notif:
         raise HTTPException(status_code=404, detail="Notificación no encontrada")
     return notif
 
-@router.delete("/{notif_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{notif_id}", status_code=status.HTTP_204_NO_CONTENT) #borra la notificacion
 async def delete_notification(notif_id: str, admin: User = Depends(get_admin_user)):
     ok = svc.delete_notification(notif_id)
     if not ok:
