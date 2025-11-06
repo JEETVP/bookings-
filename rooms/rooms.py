@@ -5,9 +5,8 @@ from fastapi import APIRouter, HTTPException, status, Depends, Query
 from typing import List, Optional
 from datetime import datetime
 from bson import ObjectId
-from bson.errors import InvalidId
 
-from rooms.schemas import RoomCreate, RoomUpdate, RoomResponse
+from rooms.schemas import RoomUpdate, RoomResponse, RoomBase
 from utils.mongodb import get_rooms_collection
 from utils.auth import get_current_user
 from models import User
@@ -21,13 +20,14 @@ def room_helper(room) -> dict:
         "id": str(room["_id"]),
         "status": room["status"],
         "descripcion": room["descripcion"],
+        "characteristics": room.get("characteristics"),
         "created_at": room["created_at"],
         "updated_at": room.get("updated_at")
     }
 
 @router.post("/", response_model=RoomResponse, status_code=status.HTTP_201_CREATED)
 async def create_room(
-    room: RoomCreate,
+    room: RoomBase,
     current_user: User = Depends(get_current_user)
 ):
     """
@@ -36,7 +36,7 @@ async def create_room(
     Requiere autenticación (admin)
     """
     # Verificar que el usuario sea admin
-    if current_user.role != "admin":
+    if str(current_user.role) != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Solo los administradores pueden crear habitaciones"
@@ -48,6 +48,7 @@ async def create_room(
     room_dict = {
         "status": room.status,
         "descripcion": room.descripcion,
+        "characteristics": room.characteristics,
         "created_at": datetime.now(),
         "updated_at": None
     }
@@ -97,13 +98,13 @@ async def get_room(
     collection = get_rooms_collection()
     
     # Validar ObjectId
-    try:
-        obj_id = ObjectId(room_id)
-    except InvalidId:
+    if not ObjectId.is_valid(room_id):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="ID de habitación inválido"
         )
+    
+    obj_id = ObjectId(room_id)
     
     # Buscar habitación
     room = collection.find_one({"_id": obj_id})
@@ -128,7 +129,7 @@ async def update_room(
     Requiere autenticación (admin)
     """
     # Verificar que el usuario sea admin
-    if current_user.role != "admin":
+    if str(current_user.role) != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Solo los administradores pueden actualizar habitaciones"
@@ -137,13 +138,13 @@ async def update_room(
     collection = get_rooms_collection()
     
     # Validar ObjectId
-    try:
-        obj_id = ObjectId(room_id)
-    except InvalidId:
+    if not ObjectId.is_valid(room_id):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="ID de habitación inválido"
         )
+    
+    obj_id = ObjectId(room_id)
     
     # Verificar que la habitación existe
     existing_room = collection.find_one({"_id": obj_id})
@@ -180,7 +181,7 @@ async def delete_room(
     Requiere autenticación (admin)
     """
     # Verificar que el usuario sea admin
-    if current_user.role != "admin":
+    if str(current_user.role) != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Solo los administradores pueden eliminar habitaciones"
@@ -189,13 +190,13 @@ async def delete_room(
     collection = get_rooms_collection()
     
     # Validar ObjectId
-    try:
-        obj_id = ObjectId(room_id)
-    except InvalidId:
+    if not ObjectId.is_valid(room_id):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="ID de habitación inválido"
         )
+    
+    obj_id = ObjectId(room_id)
     
     # Eliminar habitación
     result = collection.delete_one({"_id": obj_id})

@@ -26,6 +26,7 @@ class RoomBase(BaseModel):
     """Schema base para Room"""
     status: str = Field(..., max_length=50, description="Estado de la habitación (disponible, ocupada, mantenimiento)")
     descripcion: str = Field(..., max_length=100, description="Descripción de la habitación")
+    characteristics: Optional[str] = Field(None, max_length=200, description="Características adicionales de la habitación")
 
     @field_validator('status')
     @classmethod
@@ -36,14 +37,11 @@ class RoomBase(BaseModel):
             raise ValueError(f"Status debe ser uno de: {', '.join(valid_statuses)}")
         return v.lower()
 
-class RoomCreate(RoomBase):
-    """Schema para crear una nueva Room"""
-    pass
-
 class RoomUpdate(BaseModel):
     """Schema para actualizar una Room"""
     status: Optional[str] = Field(None, max_length=50, description="Estado de la habitación")
     descripcion: Optional[str] = Field(None, max_length=100, description="Descripción de la habitación")
+    characteristics: Optional[str] = Field(None, max_length=200, description="Características adicionales de la habitación")
 
     @field_validator('status')
     @classmethod
@@ -72,6 +70,7 @@ class RoomResponse(BaseModel):
     id: str = Field(description="ID de la habitación")
     status: str = Field(description="Estado de la habitación")
     descripcion: str = Field(description="Descripción de la habitación")
+    characteristics: Optional[str] = Field(None, description="Características adicionales de la habitación")
     created_at: datetime = Field(description="Fecha de creación")
     updated_at: Optional[datetime] = Field(None, description="Fecha de última actualización")
 
