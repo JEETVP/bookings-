@@ -1,5 +1,4 @@
-# Clases de modelos para la aplicación de reservas de habitaciones
-# Clases base: User, Booking, Room, Notification 
+
 from pydantic import BaseModel, Field
 from typing import  Optional, List
 from datetime import datetime
@@ -79,40 +78,6 @@ class User(Base):
     def __repr__(self):
         return f"User('{self.nombre_completo} {self.apellidos}', '{self.email}'), role='{self.role}')"
 
-# Se hizo otra clase para esta ya que tiene varios estados
-class BookingStatus(str, enum.Enum):
-    CONFIRMADA = "Confirmada"
-    CANCELADA  = "Cancelada"
-    COMPLETADA = "Completada"
-
-class Booking(Base):
-    __tablename__ = "bookings"
-
-    Id          = Column("Id", Integer, primary_key=True, index=True)
-    Room_Id     = Column("Room_Id", Integer, ForeignKey("rooms.Id"), nullable=False, index=True)
-    User_Id     = Column("User_Id", Integer, ForeignKey("users.Id"), nullable=False, index=True)
-    Estado      = Column(
-        "Estado", #Creamos la columna aqui con el nombre "Estado"
-        SAEnum(BookingStatus, name="booking_status"), #Aquí le pasamos el "BookingStatus" que ya tiene valores definidos
-        nullable=False, #Obviamente no hay nulos
-        default=BookingStatus.CONFIRMADA, #Su default es "Confirmada"
-        server_default=BookingStatus.CONFIRMADA.value, #Su default en el servidor tambien es "Confirmada"
-    )
-    BookingIn   = Column("BookingIn", DateTime(timezone=True), nullable=True)
-    BookingOn   = Column("BookingOn", DateTime(timezone=True), nullable=True)
-    created_at  = Column("created_at", DateTime(timezone=True), nullable=False, server_default=func.now())
-    num_guests  = Column("num_guests", Integer, nullable=False)
-    total_price = Column("total_price", Float,   nullable=False)
-
-    #Esto de aqui abajo son check constraints
-    __table_args__ = (
-        CheckConstraint("num_guests >= 1",  name="ck_bookings_num_guests_ge_1"), #No se pueden hacer reservar con 0 o números negativos
-        CheckConstraint("total_price >= 0", name="ck_bookings_total_price_ge_0") #No se puede guardar un precio con numero negativo
-    )
-
-    # Relaciones que irian pero me acordé que se va a pasar a mongo, asi que no se usaran
-    #room = relationship("Room", back_populates="bookings")
-    #user = relationship("User", back_populates="bookings")
 
 #Room
 class Room(BaseModel):
@@ -159,5 +124,35 @@ class Booking(BaseModel):
     created_at: datetime = Field(default_factory=datetime.now, description="Fecha de creación de la reserva")
     num_guests: int = Field(..., ge=1, description="Número de huéspedes")
     total_price: float = Field(..., ge=0, description="Precio total de la reserva")
+
+
+class Booking(Base):
+    __tablename__ = "bookings"
+
+    Id          = Column("Id", Integer, primary_key=True, index=True)
+    Room_Id     = Column("Room_Id", Integer, ForeignKey("rooms.Id"), nullable=False, index=True)
+    User_Id     = Column("User_Id", Integer, ForeignKey("users.Id"), nullable=False, index=True)
+    Estado      = Column(
+        "Estado", #Creamos la columna aqui con el nombre "Estado"
+        SAEnum(BookingStatus, name="booking_status"), #Aquí le pasamos el "BookingStatus" que ya tiene valores definidos
+        nullable=False, #Obviamente no hay nulos
+        default=BookingStatus.CONFIRMADA, #Su default es "Confirmada"
+        server_default=BookingStatus.CONFIRMADA.value, #Su default en el servidor tambien es "Confirmada"
+    )
+    BookingIn   = Column("BookingIn", DateTime(timezone=True), nullable=True)
+    BookingOn   = Column("BookingOn", DateTime(timezone=True), nullable=True)
+    created_at  = Column("created_at", DateTime(timezone=True), nullable=False, server_default=func.now())
+    num_guests  = Column("num_guests", Integer, nullable=False)
+    total_price = Column("total_price", Float,   nullable=False)
+
+    #Esto de aqui abajo son check constraints
+    __table_args__ = (
+        CheckConstraint("num_guests >= 1",  name="ck_bookings_num_guests_ge_1"), #No se pueden hacer reservar con 0 o números negativos
+        CheckConstraint("total_price >= 0", name="ck_bookings_total_price_ge_0") #No se puede guardar un precio con numero negativo
+    )
+
+    # Relaciones que irian pero me acordé que se va a pasar a mongo, asi que no se usaran
+    #room = relationship("Room", back_populates="bookings")
+    #user = relationship("User", back_populates="bookings")
 
 '''
