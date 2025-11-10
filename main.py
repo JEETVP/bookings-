@@ -1,40 +1,41 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from datetime import datetime
+from datetime import datetime, timezone
 from contextlib import asynccontextmanager
-from utils.config import settings
-from routes.auth import router as auth_router
-from database import init_db
+import os
+import logging
 from routers.notifications import router as notifications_router
 from rooms.rooms import router as rooms_router
 from utils.mongodb import get_mongo_client, close_mongo_connection
+from scheduler import start_scheduler, stop_scheduler
+
+def _get_allowed_origins() -> list[str]:
+    raw = os.getenv("ALLOWED_ORIGINS", "*").strip()
+    if raw == "*" or raw == "":
+        return ["*"]
+    return [o.strip() for o in raw.split(",") if o.strip()]
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Gestionar el ciclo de vida de la aplicación"""
-    # Startup: Inicializar conexiones
-    init_db()
+    logging.basicConfig(level=logging.INFO)
     get_mongo_client()
-    print("Aplicación iniciada correctamente")
-    
+    app.state.scheduler = start_scheduler()
+    logging.info("Aplicación iniciada correctamente")
     yield
-    
-    # Shutdown: Cerrar conexiones
+    stop_scheduler(app.state.scheduler)
     close_mongo_connection()
-    print("Aplicación detenida")
+    logging.info("Aplicación detenida")
 
-app = FastAPI(title="Api Booking", lifespan=lifespan)
-app.version = "1.0.0"
+app = FastAPI(title="Api Booking", version="1.0.0", lifespan=lifespan)
 
+# CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_origins=_get_allowed_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-app.include_router(auth_router)
 app.include_router(notifications_router)
 app.include_router(rooms_router)
 
@@ -47,7 +48,7 @@ async def health_check():
     return {
         "status": "healthy",
         "version": app.version,
-        "timestamp": datetime.now().astimezone().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "uptime": "Service is running",
-        "environment": "production",
+        "environment": os.getenv("ENVIRONMENT", "production"),
     }
