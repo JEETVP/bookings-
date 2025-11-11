@@ -57,6 +57,38 @@ app.add_middleware(
 async def read_root():
     return {"Api Booking": app.version}
 
+@app.get("/test/db")
+async def test_database():
+    """Endpoint de prueba para verificar las colecciones de MongoDB"""
+    from lib.database import client
+    
+    try:
+        if not client:
+            return {"error": "MongoDB no está conectado"}
+        
+        # Obtener la base de datos
+        db = client[settings.MONGODB_DATABASE]
+        
+        # Listar todas las colecciones
+        collections = await db.list_collection_names()
+        
+        # Contar documentos en cada colección
+        collection_stats = {}
+        for collection_name in collections:
+            count = await db[collection_name].count_documents({})
+            collection_stats[collection_name] = count
+        
+        return {
+            "status": "success",
+            "database": settings.MONGODB_DATABASE,
+            "collections": collections,
+            "document_counts": collection_stats,
+            "message": "Modelos Document registrados correctamente en Beanie"
+        }
+    except Exception as e:
+        logger.error(f"Error en test de base de datos: {e}")
+        return {"error": str(e)}
+
 @app.get("/health")
 async def health_check():
     """Punto de verificación de salud con estado de MongoDB"""
