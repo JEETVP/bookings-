@@ -4,8 +4,11 @@ from bson import ObjectId
 from datetime import datetime
 from schemas import BookingCreate, BookingOut
 
+from bson.errors import InvalidId
 
-#Co n esto inicializamos mongodb
+
+
+#Con esto inicializamos mongodb
 #Aqui ajustamos el nombre y todo eso de acuerdo a lo que tengamos en nuestro entorno
 mongo_client = MongoClient("mongodb://localhost:27017")
 db = mongo_client["bookings_db"]
@@ -21,10 +24,25 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-#Get general de los bookings
-@router.get("/", response_model=list[BookingOut])
-def get_bookings():
-    docs = list(bookings_col.find({}))
+# --------------------------------------Endpoints ----------------------------------------------------------------
+
+#Get general de los bookings con query params
+@router.get("/", response_model=list[BookingOut])    
+def get_bookings(
+    estado: str | None = None,
+    user_id: str | None = None,
+    room_id: str | None = None,
+):
+    query = {}
+
+    if estado:
+        query["estado"] = estado
+    if user_id:
+        query["user_id"] = user_id
+    if room_id:
+        query["room_id"] = room_id
+
+    docs = list(bookings_col.find(query))
     for d in docs:
         d["_id"] = str(d["_id"])
     return docs
@@ -74,6 +92,22 @@ def delete_booking(booking_id: str):
     if result.deleted_count == 0:
         raise HTTPException(404, "Booking no encontrado")
     return {"detail": "Booking eliminado"}
+
+# Get de un booking por ID
+@router.get("/{booking_id}", response_model=BookingOut)
+def get_booking(booking_id: str):
+    try:
+        oid = ObjectId(booking_id)
+    except InvalidId:
+        # Si mandan un id que ni siquiera es ObjectId válido
+        raise HTTPException(status_code=400, detail="booking_id inválido")
+
+    doc = bookings_col.find_one({"_id": oid})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Booking no encontrado")
+
+    doc["_id"] = str(doc["_id"])
+    return doc
 
 '''
 #Get normal sin query params (todavia)
