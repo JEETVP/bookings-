@@ -1,13 +1,13 @@
 import os
 from typing import List
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class Settings:
     """Configuración de la aplicación"""
     
-    # Base de datos SQLite (para autenticación)
-    DATABASE_URL: str = os.getenv('DATABASE_URL', 'sqlite:///./api_booking.db')
-    
-    # MongoDB (para rooms, bookings, notifications, etc.)
+    # MongoDB (para rooms, bookings, notifications)
     MONGODB_URI: str = os.getenv('MONGODB_URI', 'mongodb://localhost:27017')
     MONGODB_DB_NAME: str = os.getenv('MONGODB_DB_NAME', 'booking_db')
     

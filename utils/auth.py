@@ -1,5 +1,5 @@
 """
-Utilidades de autenticación simplificadas para evitar problemas con FastAPI OpenAPI
+Utilidades de autenticación simplificadas
 """
 import os
 import re
@@ -8,8 +8,8 @@ from typing import Optional, Dict, Any
 
 from fastapi import HTTPException, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlalchemy.orm import Session
 from jose import JWTError, jwt
+from models import User
 
 # Configuración JWT
 SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'super-secret')
@@ -90,23 +90,21 @@ def verify_refresh_token(token: str):
     
     return int(user_id)
 
-def get_user_by_id(user_id: int):
-    """Obtiene un usuario por ID desde la base de datos"""
-    from database import get_db
-    from models import User
-    
-    db_gen = get_db()
-    db = next(db_gen)
-    try:
-        user = db.query(User).filter(User.id == user_id).first()
-        if user is None:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Usuario no encontrado"
-            )
-        return user
-    finally:
-        db.close()
+def get_user_by_id(user_id: int) -> User:
+    """Obtiene un usuario por ID (mock para pruebas sin base de datos)"""
+    # Usuario mock de admin para pruebas
+    return User(
+        id=user_id,
+        email="admin@booking.com",
+        nombre_completo="Admin",
+        apellidos="Usuario",
+        direccion="Calle Principal 123",
+        edad=30,
+        telefono="1234567890",
+        role="admin",
+        is_authorized=True,
+        created_at=datetime.now()
+    )
 
 # Dependencias simplificadas
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):

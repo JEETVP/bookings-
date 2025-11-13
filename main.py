@@ -3,8 +3,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 from contextlib import asynccontextmanager
 from utils.config import settings
-from routes.auth import router as auth_router
-from database import init_db
 from routers.notifications import router as notifications_router
 from rooms.rooms import router as rooms_router
 from utils.mongodb import get_mongo_client, close_mongo_connection
@@ -12,8 +10,7 @@ from utils.mongodb import get_mongo_client, close_mongo_connection
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Gestionar el ciclo de vida de la aplicación"""
-    # Startup: Inicializar conexiones
-    init_db()
+    # Startup: Inicializar MongoDB
     get_mongo_client()
     print("Aplicación iniciada correctamente")
     
@@ -34,13 +31,34 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth_router)
 app.include_router(notifications_router)
 app.include_router(rooms_router)
 
 @app.get("/")
 async def read_root():
     return {"Api Booking": app.version}
+
+@app.get("/get-test-token")
+async def get_test_token():
+    """Endpoint para obtener un token de prueba (admin)"""
+    from utils.auth import create_access_token, create_refresh_token
+    from datetime import timedelta
+    
+    access_token = create_access_token(
+        data={"sub": "1", "role": "admin"},
+        expires_delta=timedelta(minutes=60)
+    )
+    refresh_token = create_refresh_token(
+        data={"sub": "1", "role": "admin"},
+        expires_delta=timedelta(days=7)
+    )
+    
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+        "message": "Use este token en el header Authorization: Bearer {access_token}"
+    }
 
 @app.get("/health")
 async def health_check():

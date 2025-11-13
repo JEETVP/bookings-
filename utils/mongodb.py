@@ -15,13 +15,19 @@ def get_mongo_client() -> MongoClient:
     global _mongo_client
     if _mongo_client is None:
         try:
-            _mongo_client = MongoClient(settings.MONGODB_URI)
+            _mongo_client = MongoClient(settings.MONGODB_URI, serverSelectionTimeoutMS=5000)
             # Verificar la conexión
             _mongo_client.admin.command('ping')
-            print(f"Conexión a MongoDB exitosa: {settings.MONGODB_URI}")
+            print(f"Conexion a MongoDB exitosa: {settings.MONGODB_URI}")
         except ConnectionFailure as e:
             print(f"Error al conectar con MongoDB: {e}")
-            raise
+            print("ADVERTENCIA: La aplicacion continuara sin MongoDB")
+            print("Los endpoints de rooms no funcionaran hasta que MongoDB este disponible")
+            _mongo_client = None
+        except Exception as e:
+            print(f"Error inesperado al conectar con MongoDB: {e}")
+            print("ADVERTENCIA: La aplicacion continuara sin MongoDB")
+            _mongo_client = None
     return _mongo_client
 
 def get_mongo_db() -> Database:
@@ -29,7 +35,10 @@ def get_mongo_db() -> Database:
     global _mongo_db
     if _mongo_db is None:
         client = get_mongo_client()
-        _mongo_db = client[settings.MONGODB_DB_NAME]
+        if client is not None:
+            _mongo_db = client[settings.MONGODB_DB_NAME]
+        else:
+            raise ConnectionFailure("MongoDB no esta disponible")
     return _mongo_db
 
 def close_mongo_connection():
