@@ -51,14 +51,51 @@ def get_bookings(
 #Post de los bookings
 @router.post("/", response_model=BookingOut)
 def create_booking(booking_in: BookingCreate):
-    #Una pequeña validación manual para verificar que el user_id y room_id existan
-    if not users_col.find_one({"_id": booking_in.user_id}):
-        raise HTTPException(400, "User no existe")
-    if not rooms_col.find_one({"_id": booking_in.room_id}):
+    # Validar existencia de user_id
+    try:
+        user_oid = ObjectId(booking_in.user_id)
+    except InvalidId:
+        raise HTTPException(400, "user_id inválido")
+    if not users_col.find_one({"_id": user_oid}):
+        raise HTTPException(400, "Usuario no existe")
+
+    # Validar existencia del room_id
+    try:
+        room_oid = ObjectId(booking_in.room_id)
+    except InvalidId:
+        raise HTTPException(400, "room_id inválido")
+    room = rooms_col.find_one({"_id": room_oid})
+    if not room:
         raise HTTPException(400, "Room no existe")
+    
+    #Verificacion del estado de la habitacion para que permita reservar
+    estado_room = room.get("status") or room.get("Status")
+    if estado_room.lower() not in ["available", "disponible"]:
+        raise HTTPException(400, f"Room no está disponible para reservar (estado: {estado_room})")
+    
+    #Validar que el num_guests no exceda la capacidad del room
+    capacidad = room.get("capacity") or room.get("Capacity")
+    if capacidad and booking_in.num_guests > capacidad:
+        raise HTTPException(
+            400, f"Número de huéspedes excede la capacidad del room ({capacidad})"
+        )
+    
+    #Validar que no haya reservas enpalmadas para el mismo room
+    overlapping = bookings_col.find_one({
+        "room_id":booking_in.room_id,
+        "$or":[
+            {
+                "booking_in": {"$lt": booking_in.booking_on},
+                "booking_on": {"$gt": booking_in.booking_in}
+            }
+        ]
+    })
+    if overlapping:
+        raise HTTPException(400, "El room ya está reservado en las fechas indicadas")
 
     doc = booking_in.model_dump()
     doc["created_at"] = datetime.utcnow()
+    doc["estado"] = "Confirmada"  # Aseguramos que el estado inicial sea CONFIRMADA
 
     result = bookings_col.insert_one(doc)
     doc["_id"] = str(result.inserted_id)
