@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from utils.config import settings
 from routers.notifications import router as notifications_router
 from rooms.rooms import router as rooms_router
+from bookings.bookings import router as bookings_router
 from utils.mongodb import get_mongo_client, close_mongo_connection
 
 @asynccontextmanager
@@ -33,6 +34,7 @@ app.add_middleware(
 
 app.include_router(notifications_router)
 app.include_router(rooms_router)
+app.include_router(bookings_router)
 
 @app.get("/")
 async def read_root():
